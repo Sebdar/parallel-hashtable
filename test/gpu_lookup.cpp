@@ -10,7 +10,7 @@
 #include <chrono>
 #include <vector>
 
-constexpr auto map_size = 1048576;
+constexpr auto default_map_size = 8388608;
 constexpr auto default_rate = 0.8;
 
 __global__ void parallel_lookup(ParallelHashtable::Entry* hashtable, size_t n,
@@ -30,7 +30,8 @@ size_t compute_fill(size_t size, double rate) {
 }
 
 int main(int argc, char** argv) {
-    double fill_rate = argc > 1 ? std::atof(argv[1]) : default_rate;
+    size_t map_size = argc > 1 ? std::atoll(argv[1]) : default_map_size;
+    double fill_rate = argc > 2 ? std::atof(argv[2]) : default_rate;
     auto fill_size = compute_fill(map_size, fill_rate);
 
     ParallelHashtable map{map_size};
@@ -57,9 +58,13 @@ int main(int argc, char** argv) {
 
     auto* hashtable_device = map.toDevice();
 
+    // Empty kernel to start the queue
+    parallel_lookup<<<1, 1>>>(nullptr, 0, nullptr, nullptr, 0);
+    hip::check(hipDeviceSynchronize());
+
     auto t0 = std::chrono::steady_clock::now();
-    parallel_lookup<<<1, 64>>>(hashtable_device, map.getCapacity(), keys_device,
-                               values_device, fill_size);
+    parallel_lookup<<<64, 512>>>(hashtable_device, map.getCapacity(),
+                                 keys_device, values_device, fill_size);
     hip::check(hipDeviceSynchronize());
     auto t1 = std::chrono::steady_clock::now();
 
