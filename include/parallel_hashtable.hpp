@@ -10,6 +10,21 @@
 #include <cstring>
 #include <memory>
 
+#include <iostream>
+
+#include "hip/hip_runtime.h"
+
+namespace hip {
+inline void check(hipError_t err) {
+    if (err != hipSuccess) {
+        std::cerr << "error : " << hipGetErrorString(err) << " (" << err
+                  << ")\n";
+        throw std::runtime_error(std::string("Encountered hip error ") +
+                                 hipGetErrorString(err));
+    }
+}
+} // namespace hip
+
 class ParallelHashtable {
   public:
     using Key = uint32_t;
@@ -81,12 +96,21 @@ class ParallelHashtable {
     // ----- Device I/O ----- //
 
     Entry* toDevice() const {
-        // TODO
-        return nullptr;
+        Entry* device;
+
+        auto size = capacity * sizeof(Entry);
+
+        hip::check(hipMalloc(&device, size));
+        hip::check(hipMemcpy(device, array.get(), size, hipMemcpyHostToDevice));
+
+        return device;
     }
 
-    void fromDevice() {
-        // TODO
+    void fromDevice(Entry* device_ptr) {
+        auto size = capacity * sizeof(Entry);
+
+        hip::check(
+            hipMemcpy(array.get(), device_ptr, size, hipMemcpyDeviceToHost));
     }
 
   private:

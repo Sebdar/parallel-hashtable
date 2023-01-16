@@ -12,11 +12,11 @@ include_directories(
 
 # ----- Tests ----- #
 
-add_executable(fill
-    test/fill.cpp
+add_executable(gpu_lookup
+    test/gpu_lookup.cpp
 )
 
-target_link_libraries(fill
+target_link_libraries(gpu_lookup
     hip::device
 )
 

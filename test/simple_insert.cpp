@@ -13,6 +13,7 @@ constexpr auto fill_size = 64;
 
 int main() {
     ParallelHashtable map{map_size};
+
     for (auto i = 0u; i < fill_size; ++i) {
         std::cout << "Inserting " << i << " : " << i << '\n';
         map.insert(i, i);
