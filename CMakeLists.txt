@@ -20,3 +20,10 @@ target_link_libraries(fill
     hip::device
 )
 
+add_executable(simple_insert
+    test/simple_insert.cpp
+)
+
+target_link_libraries(simple_insert
+    hip::device
+)

@@ -7,6 +7,8 @@
 #pragma once
 
 #include <cstdint>
+#include <cstring>
+#include <memory>
 
 class ParallelHashtable {
   public:
@@ -17,7 +19,7 @@ class ParallelHashtable {
         Key key;
         Value value;
 
-        constexpr static Key Empty = 0xFFFF;
+        constexpr static Key Empty = 0xFFFFFFFF;
     } __attribute__((packed));
 
     static __device__ __host__ uint32_t hash(Key k, size_t capacity) {
@@ -30,15 +32,16 @@ class ParallelHashtable {
         return k & (capacity - 1);
     }
 
-    static __device__ Value lookup(Entry* hashtable, Key key, size_t capacity) {
-        uint32_t slot = hash(key, capacity);
+    static __device__ __host__ Value lookup(Entry* hashtable, Key key,
+                                            size_t capacity) {
+        auto slot = hash(key, capacity);
 
         while (true) {
             auto entry = hashtable[slot];
             if (entry.key == key) {
                 return entry.value;
-            } else if (entry.key == Entry::empty) {
-                return Entry::empty;
+            } else if (entry.key == Entry::Empty) {
+                return Entry::Empty;
             }
 
             slot = (slot + 1) & (capacity - 1);
@@ -47,17 +50,37 @@ class ParallelHashtable {
 
     // ----- Init ----- //
 
-    ParallelHashtable(size_t capacity) {
-        // TODO
+    ParallelHashtable(size_t capacity)
+        : capacity(capacity), array(new Entry[capacity]) {
+        memset(array.get(), Entry::Empty, capacity * sizeof(Entry));
     }
 
     size_t getCapacity() const { return capacity; }
 
     // ----- Modifiers ----- //
 
+    void insert(Key key, Value value) {
+        auto slot = hash(key, capacity);
+
+        while (true) {
+            // No support for concurrent insert yet, should use CAS
+            auto entry = array[slot];
+
+            if (entry.key == Entry::Empty || entry.key == key) {
+                array[slot].key = key;
+                array[slot].value = value;
+                break;
+            }
+
+            slot = (slot + 1) & (capacity - 1);
+        }
+    }
+
+    Value operator[](Key key) { return lookup(array.get(), key, capacity); }
+
     // ----- Device I/O ----- //
 
-    Pair* toDevice() const {
+    Entry* toDevice() const {
         // TODO
         return nullptr;
     }
@@ -67,6 +90,6 @@ class ParallelHashtable {
     }
 
   private:
-    Entry* array;
+    std::unique_ptr<Entry[]> array;
     size_t capacity;
 };
