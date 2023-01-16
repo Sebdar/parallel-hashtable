@@ -36,6 +36,7 @@ int main(int argc, char** argv) {
     ParallelHashtable map{map_size};
     std::vector<uint32_t> keys_host;
     std::vector<uint32_t> values_host;
+
     keys_host.reserve(fill_size);
     values_host.reserve(fill_size);
 
