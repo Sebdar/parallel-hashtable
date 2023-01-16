@@ -7,10 +7,11 @@
 #include "hip/hip_runtime.h"
 #include "parallel_hashtable.hpp"
 
+#include <chrono>
 #include <vector>
 
 constexpr auto map_size = 1048576;
-constexpr auto fill_size = 838860; // About 0.8 rate
+constexpr auto default_rate = 0.8;
 
 __global__ void parallel_lookup(ParallelHashtable::Entry* hashtable, size_t n,
                                 uint32_t* keys, uint32_t* values,
@@ -24,7 +25,14 @@ __global__ void parallel_lookup(ParallelHashtable::Entry* hashtable, size_t n,
     }
 }
 
-int main() {
+size_t compute_fill(size_t size, double rate) {
+    return static_cast<double>(size) * rate;
+}
+
+int main(int argc, char** argv) {
+    double fill_rate = argc > 1 ? std::atof(argv[1]) : default_rate;
+    auto fill_size = compute_fill(map_size, fill_rate);
+
     ParallelHashtable map{map_size};
     std::vector<uint32_t> keys_host;
     std::vector<uint32_t> values_host;
@@ -48,9 +56,15 @@ int main() {
 
     auto* hashtable_device = map.toDevice();
 
+    auto t0 = std::chrono::steady_clock::now();
     parallel_lookup<<<1, 64>>>(hashtable_device, map.getCapacity(), keys_device,
                                values_device, fill_size);
     hip::check(hipDeviceSynchronize());
+    auto t1 = std::chrono::steady_clock::now();
+
+    std::cout
+        << std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count()
+        << '\n';
 
     hip::check(hipMemcpy(values_host.data(), values_device, size,
                          hipMemcpyDeviceToHost));
