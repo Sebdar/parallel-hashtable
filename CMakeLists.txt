@@ -8,8 +8,8 @@ set(CMAKE_CXX_STANDARD 20)
 
 set(HIP_PATH /opt/rocm)
 
-set(CMAKE_CXX_FLAGS "-fpass-plugin=/home/sdarche/hip-analyzer/build/libhip-analyzer-pass.so -O3")
-#set(CMAKE_CXX_FLAGS "-fpass-plugin=/home/sdarche/hip-analyzer/build/libhip-kernel-timer-pass.so -O3")
+set(CMAKE_CXX_FLAGS "-Wall -fpass-plugin=/home/sdarche/hip-analyzer/build/libhip-analyzer-pass.so -O3")
+#set(CMAKE_CXX_FLAGS "-Wall -fpass-plugin=/home/sdarche/hip-analyzer/build/libhip-kernel-timer-pass.so -O3")
 
 include_directories(
     include

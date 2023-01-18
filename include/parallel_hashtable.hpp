@@ -114,6 +114,6 @@ class ParallelHashtable {
     }
 
   private:
-    std::unique_ptr<Entry[]> array;
     size_t capacity;
+    std::unique_ptr<Entry[]> array;
 };
