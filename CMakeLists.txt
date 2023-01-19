@@ -28,8 +28,8 @@ add_executable(gpu_lookup
 )
 
 target_link_libraries(gpu_lookup
-    hip::device
     hip_instrumentation
+    hip::device
     dl
     jsoncpp
     pthread

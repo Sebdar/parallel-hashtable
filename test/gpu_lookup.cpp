@@ -21,12 +21,22 @@ __global__ void parallel_lookup(ParallelHashtable::Entry* hashtable, size_t n,
 
     for (auto i = offset; i < n_query; i += stride) {
         auto k = keys[i];
+        __syncthreads();
         values[i] = ParallelHashtable::lookup(hashtable, k, n);
     }
 }
 
 size_t compute_fill(size_t size, double rate) {
     return static_cast<double>(size) * rate;
+}
+
+constexpr auto thread_count = 64u * 64u;
+/** \fn compute_geometry
+ * \brief Compute grid geometry while keeping total thread count constant for
+ * tests
+ */
+constexpr std::pair<dim3, dim3> compute_geometry(size_t block_size) {
+    return {thread_count / block_size, block_size};
 }
 
 int main(int argc, char** argv) {
@@ -62,9 +72,10 @@ int main(int argc, char** argv) {
     parallel_lookup<<<1, 1>>>(nullptr, 0, nullptr, nullptr, 0);
     hip::check(hipDeviceSynchronize());
 
+    auto [blocks, threads] = compute_geometry(512);
     auto t0 = std::chrono::steady_clock::now();
-    parallel_lookup<<<64, 512>>>(hashtable_device, map.getCapacity(),
-                                 keys_device, values_device, fill_size);
+    parallel_lookup<<<blocks, threads>>>(hashtable_device, map.getCapacity(),
+                                         keys_device, values_device, fill_size);
     hip::check(hipDeviceSynchronize());
     auto t1 = std::chrono::steady_clock::now();
 
