@@ -16,16 +16,37 @@ constexpr auto default_rate = 0.8;
 __global__ void parallel_lookup(ParallelHashtable::Entry* hashtable, size_t n,
                                 uint32_t* keys, uint32_t* values,
                                 size_t n_query) {
-    size_t offset = (blockIdx.x * blockDim.x + threadIdx.x);
+    size_t offset = blockIdx.x * blockDim.x + threadIdx.x;
     size_t stride = blockDim.x * gridDim.x;
 
     for (auto i = offset; i < n_query; i += stride) {
         auto k = keys[i];
+
+#ifndef INLINE_LOOKUP
+        auto v = ParallelHashtable::lookup(hashtable, k, n);
+#else
+        ParallelHashtable::Value v;
+        auto slot = ParallelHashtable::hash(k, capacity);
+        while (true) {
+            auto entry = hashtable[slot];
+            if (entry.key == key) {
+                v = entry.value;
+                break;
+            } else if (entry.key == Entry::Empty) {
+                v = ParallelHashtable::Entry::Empty;
+                break;
+            }
+
+            slot = (slot + 1) & (capacity - 1);
+        }
+#endif
+
+        // Simulate computation
         __syncthreads();
-        values[i] = ParallelHashtable::lookup(hashtable, k, n);
+
+        values[i] = v;
     }
 }
-
 size_t compute_fill(size_t size, double rate) {
     return static_cast<double>(size) * rate;
 }

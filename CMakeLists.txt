@@ -15,6 +15,8 @@ include_directories(
     include
 )
 
+add_definitions(-DINLINE_LOOKUP)
+
 # ----- Tests ----- #
 
 link_directories(
