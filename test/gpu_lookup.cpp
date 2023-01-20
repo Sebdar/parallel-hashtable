@@ -26,18 +26,18 @@ __global__ void parallel_lookup(ParallelHashtable::Entry* hashtable, size_t n,
         auto v = ParallelHashtable::lookup(hashtable, k, n);
 #else
         ParallelHashtable::Value v;
-        auto slot = ParallelHashtable::hash(k, capacity);
+        auto slot = ParallelHashtable::hash(k, n);
         while (true) {
             auto entry = hashtable[slot];
-            if (entry.key == key) {
+            if (entry.key == k) {
                 v = entry.value;
                 break;
-            } else if (entry.key == Entry::Empty) {
+            } else if (entry.key == ParallelHashtable::Entry::Empty) {
                 v = ParallelHashtable::Entry::Empty;
                 break;
             }
 
-            slot = (slot + 1) & (capacity - 1);
+            slot = (slot + 1) & (n - 1);
         }
 #endif
 
